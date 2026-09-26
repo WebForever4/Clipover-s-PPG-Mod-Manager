@@ -1,0 +1,45 @@
+{
+  "name": "clippy-mod-manager",
+  "productName": "Clippy Mod Manager",
+  "version": "0.1.0",
+  "description": "A lightweight mod manager for People Playground with Nexus and Patreon downloads.",
+  "main": "src/main/index.js",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "7zip-bin": "^5.2.0",
+    "patreon-dl": "^3.9.0"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "local.clippy.modmanager",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/7zip-bin/**"
+    ],
+    "extraResources": [
+      { "from": "resources/fixes", "to": "fixes" }
+    ],
+    "protocols": [
+      {
+        "name": "Nexus Mods link",
+        "schemes": [
+          "nxm"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

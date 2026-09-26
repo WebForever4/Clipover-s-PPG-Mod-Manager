@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'self'; script-src 'self'">
+  <title>Clippy Mod Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar"><span>📎 Clippy Mod Manager</span><span class="sub">for People Playground</span></div>
+    <nav class="tabs" id="tabs"></nav>
+    <main id="view"></main>
+    <div class="statusbar" id="status">Ready.</div>
+  </div>
+
+  <div id="clippy" class="clippy">
+    <div class="bubble" id="bubble"></div>
+    <svg viewBox="0 0 100 140" width="100" height="140" aria-label="Clippy">
+      <g transform="rotate(-6 50 70)">
+        <path id="wire" d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#3f4249" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#a9aeb9" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#eef0f5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.4 -1.4)" opacity=".9"/>
+        <g class="brows" fill="none" stroke="#222" stroke-width="2.6" stroke-linecap="round">
+          <path d="M33 32 Q43 24 54 30"/><path d="M58 30 Q69 24 79 32"/>
+        </g>
+        <g class="eyes">
+          <ellipse cx="44" cy="47" rx="11" ry="13" fill="#fff" stroke="#222" stroke-width="1.6"/>
+          <ellipse cx="68" cy="47" rx="11" ry="13" fill="#fff" stroke="#222" stroke-width="1.6"/>
+          <circle class="pupil" cx="45" cy="49" r="4.2" fill="#000"/>
+          <circle class="pupil" cx="69" cy="49" r="4.2" fill="#000"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <div id="toasts"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

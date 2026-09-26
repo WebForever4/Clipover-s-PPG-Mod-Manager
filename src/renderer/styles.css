@@ -1,0 +1,57 @@
+:root { --face:#c0c0c0; --hi:#fff; --lo:#808080; --dark:#404040; --navy:#000080; --tip:#ffffcc; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: #008080; font: 12px Tahoma, "MS Sans Serif", Verdana, sans-serif; color: #000; overflow: hidden; }
+.window { position: absolute; inset: 8px; background: var(--face); border: 2px outset var(--hi); display: flex; flex-direction: column; }
+.titlebar { background: linear-gradient(90deg, var(--navy), #1084d0); color: #fff; padding: 3px 8px; font-weight: bold; display: flex; gap: 10px; align-items: baseline; }
+.titlebar .sub { font-weight: normal; opacity: .8; }
+.tabs { display: flex; gap: 2px; padding: 6px 6px 0; }
+.tab { border: 2px outset var(--hi); border-bottom: none; background: var(--face); padding: 4px 12px; cursor: pointer; font: inherit; }
+.tab.active { background: var(--tip); font-weight: bold; margin-bottom: -2px; }
+main { flex: 1; overflow: auto; margin: 0 6px; border: 2px inset var(--lo); background: var(--face); padding: 10px; }
+.statusbar { padding: 3px 8px; border-top: 1px solid var(--hi); font-size: 11px; }
+
+button { font: inherit; background: var(--face); border: 2px outset var(--hi); padding: 3px 12px; cursor: pointer; }
+button:active:not(:disabled) { border-style: inset; }
+button:disabled { color: var(--lo); cursor: default; }
+button.primary { border-color: #ffffdd #808000 #808000 #ffffdd; font-weight: bold; }
+input[type=text], input[type=password], select { font: inherit; background: #fff; border: 2px inset var(--lo); padding: 3px 5px; }
+input[type=text], input[type=password] { width: 100%; }
+label { display: block; margin: 8px 0 3px; font-weight: bold; }
+.hint { color: #444; font-size: 11px; margin: 3px 0; }
+.row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+.row .grow { flex: 1; min-width: 160px; }
+.panel { border: 2px groove var(--hi); padding: 8px 10px; margin: 0 0 10px; }
+.panel > h3 { margin: 0 0 6px; font-size: 12px; }
+
+table { width: 100%; border-collapse: collapse; background: #fff; border: 2px inset var(--lo); }
+th { background: var(--face); border: 1px outset var(--hi); text-align: left; padding: 3px 6px; position: sticky; top: 0; }
+td { padding: 3px 6px; border-bottom: 1px solid #e4e4e4; vertical-align: middle; }
+tr:nth-child(even) td { background: #f6f6ee; }
+.empty { padding: 24px; text-align: center; color: #444; background: #fff; border: 2px inset var(--lo); }
+.warn { color: #a00; font-weight: bold; cursor: help; }
+.tag { background: var(--navy); color: #fff; padding: 0 5px; font-size: 10px; }
+.progress { height: 14px; background: #fff; border: 2px inset var(--lo); min-width: 140px; }
+.progress > div { height: 100%; background: repeating-linear-gradient(90deg, var(--navy) 0 8px, #fff 8px 10px); }
+.err { color: #a00; }
+pre.log { background: #000; color: #0f0; padding: 6px; height: 180px; overflow: auto; margin: 6px 0; font: 11px Consolas, monospace; white-space: pre-wrap; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.card { background: #fff; border: 2px inset var(--lo); padding: 6px; display: flex; gap: 8px; }
+.card img { width: 72px; height: 72px; object-fit: cover; border: 1px solid var(--lo); flex: none; }
+.card .meta { min-width: 0; }
+.card .name { font-weight: bold; }
+.card .summary { color: #444; font-size: 11px; max-height: 3.6em; overflow: hidden; }
+
+.clippy { position: fixed; right: 24px; bottom: 34px; display: flex; flex-direction: column; align-items: flex-end; z-index: 50; cursor: pointer; }
+.clippy.hidden { display: none; }
+.bubble { background: var(--tip); border: 1px solid #000; padding: 8px 10px; max-width: 250px; margin-bottom: 4px; position: relative; box-shadow: 2px 2px 0 rgba(0,0,0,.35); }
+.bubble::after { content: ""; position: absolute; right: 30px; bottom: -9px; border: 5px solid transparent; border-top-color: #000; }
+.bubble.hidden { display: none; }
+.eyes { transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
+.brows { transition: transform .15s; }
+.clippy:hover .brows { transform: translateY(-3px); }
+.pupil { transition: transform .08s linear; }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+#toasts { position: fixed; left: 24px; bottom: 34px; display: flex; flex-direction: column; gap: 6px; z-index: 60; }
+.toast { background: var(--tip); border: 2px outset var(--hi); padding: 6px 10px; max-width: 420px; }
+.toast.error { border-color: #f99 #a00 #a00 #f99; }
