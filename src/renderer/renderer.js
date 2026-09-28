@@ -13,6 +13,7 @@ function h(tag, props = {}, ...kids) {
   return el;
 }
 const view = () => document.getElementById('view');
+const alpha = () => h('span', { class: 'alpha', text: 'ALPHA', title: 'Alpha: still being tested, expect problems' });
 
 async function call(name, ...args) {
   const r = await window.cmm.invoke(name, ...args);
@@ -34,9 +35,9 @@ const TIPS = [
   'It looks like you\'re modding a ragdoll. Would you like help?',
   'Toggle a checkbox and the mod is in the game folder straight away.',
   'Profiles let you keep a "chaos" setup and a "vanilla" setup side by side.',
-  'Free Nexus account? Click "Mod Manager Download" on the site and I\'ll take it from there.',
+  'Nexus only offers Manual Download for this game. Save the file and it gets imported from your Downloads folder.',
   'A ⚠ next to a mod means it has no mod.json, so the game may ignore it.',
-  'Right-click me if I\'m in the way. You can bring me back in Settings.',
+  'Right-click Clippy to hide it. Bring it back from Settings.',
 ];
 const clippy = {
   box: document.getElementById('clippy'),
@@ -62,15 +63,168 @@ document.addEventListener('mousemove', (e) => {
 clippy.box.addEventListener('contextmenu', (e) => { e.preventDefault(); clippy.box.classList.add('hidden'); });
 setInterval(() => { if (!clippy.box.classList.contains('hidden') && Math.random() < 0.5) clippy.next(); }, 60000);
 
-const state = { tab: 'mods', lib: { mods: [], profiles: { active: '', names: [] } }, settings: null, user: null, jobs: [], nexus: { list: [], mod: null, files: [], modId: '' }, patreonLog: [], patreon: { loggingIn: false } };
+(function setUpPaperclipUnravel() {
+  const CURLED = [
+    [46, 80], [46, 36], [46, 14], [74, 14], [74, 36], [74, 104],
+    [74, 134], [26, 134], [26, 104], [26, 42], [26, 2], [90, 2], [90, 42], [90, 98],
+  ];
+  const N = CURLED.length;
+  const start = CURLED[0];
 
-const TABS = [['mods', 'Mods'], ['nexus', 'Nexus Mods'], ['patreon', 'Patreon'], ['downloads', 'Downloads'], ['settings', 'Settings']];
+  function pathFor(points) {
+    const p = points;
+    return `M ${p[0][0]} ${p[0][1]} `
+      + `L ${p[1][0]} ${p[1][1]} `
+      + `C ${p[2][0]} ${p[2][1]} ${p[3][0]} ${p[3][1]} ${p[4][0]} ${p[4][1]} `
+      + `L ${p[5][0]} ${p[5][1]} `
+      + `C ${p[6][0]} ${p[6][1]} ${p[7][0]} ${p[7][1]} ${p[8][0]} ${p[8][1]} `
+      + `L ${p[9][0]} ${p[9][1]} `
+      + `C ${p[10][0]} ${p[10][1]} ${p[11][0]} ${p[11][1]} ${p[12][0]} ${p[12][1]} `
+      + `L ${p[13][0]} ${p[13][1]}`;
+  }
+
+  const wires = ['wire', 'wire-mid', 'wire-hi'].map((id) => document.getElementById(id)).filter(Boolean);
+  const handle = document.getElementById('wire-end-handle');
+  if (!wires.length || !handle) return;
+
+  const setPoints = (points) => {
+    const d = pathFor(points);
+    wires.forEach((w) => w.setAttribute('d', d));
+    handle.setAttribute('cx', points[N - 1][0]);
+    handle.setAttribute('cy', points[N - 1][1]);
+  };
+
+  let audioCtx = null;
+  function playScream() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioCtx;
+      const dur = 0.9;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      const now = ctx.currentTime;
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(1100, now + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(700, now + 0.35);
+      osc.frequency.exponentialRampToValueAtTime(950, now + 0.55);
+      osc.frequency.exponentialRampToValueAtTime(300, now + dur);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.35, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur);
+    } catch {}
+  }
+
+  const svg = clippy.box.querySelector('svg');
+  const rig = document.getElementById('clippy-rig');
+  let dragging = false;
+  let screamed = false;
+  let animId = null;
+  const MAX_DRAG = 200;
+
+  function svgPoint(clientX, clientY) {
+    const pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    const ctm = rig.getScreenCTM();
+    return ctm ? pt.matrixTransform(ctm.inverse()) : { x: clientX, y: clientY };
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const p = svgPoint(e.clientX, e.clientY);
+    const target = [p.x, p.y];
+    const dragDist = Math.hypot(target[0] - CURLED[N - 1][0], target[1] - CURLED[N - 1][1]);
+    const alpha = Math.max(0, Math.min(1, dragDist / MAX_DRAG));
+    const points = CURLED.map((pt, i) => {
+      const t = i / (N - 1);
+      const straightX = start[0] + t * (target[0] - start[0]);
+      const straightY = start[1] + t * (target[1] - start[1]);
+      return [pt[0] + (straightX - pt[0]) * alpha, pt[1] + (straightY - pt[1]) * alpha];
+    });
+    setPoints(points);
+    if (alpha >= 0.98 && !screamed) {
+      screamed = true;
+      playScream();
+      clippy.say('AAAAAAAH!', 3000);
+    } else if (alpha < 0.98) {
+      screamed = false;
+    }
+  }
+
+  function springBack() {
+    cancelAnimationFrame(animId);
+    const from = [handle.cx.baseVal.value, handle.cy.baseVal.value];
+    const startTime = performance.now();
+    const duration = 350;
+    const dragDist = Math.hypot(from[0] - CURLED[N - 1][0], from[1] - CURLED[N - 1][1]);
+    const releaseAlpha = Math.max(0, Math.min(1, dragDist / MAX_DRAG));
+    const releasePoints = CURLED.map((pt, i) => {
+      const t = i / (N - 1);
+      const straightX = start[0] + t * (from[0] - start[0]);
+      const straightY = start[1] + t * (from[1] - start[1]);
+      return [pt[0] + (straightX - pt[0]) * releaseAlpha, pt[1] + (straightY - pt[1]) * releaseAlpha];
+    });
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const points = CURLED.map((pt, i) => [
+        releasePoints[i][0] + (pt[0] - releasePoints[i][0]) * t,
+        releasePoints[i][1] + (pt[1] - releasePoints[i][1]) * t,
+      ]);
+      setPoints(points);
+      if (t < 1) animId = requestAnimationFrame(step);
+    }
+    animId = requestAnimationFrame(step);
+  }
+
+  function release() {
+    if (!dragging) return;
+    dragging = false;
+    screamed = false;
+    clippy.box.classList.remove('unraveling');
+    springBack();
+  }
+
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dragging = true;
+    screamed = false;
+    clippy.box.classList.add('unraveling');
+  });
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+  window.addEventListener('blur', release);
+})();
+
+const state = { tab: 'mods', lib: { mods: [], profiles: { active: '', names: [] } }, settings: null, user: null, jobs: [], nexus: { list: [], mod: null, files: [], modId: '' }, topmods: { list: [], kind: null }, patreonLog: [], patreon: { loggingIn: false } };
+
+const TABS = [['mods', 'Mods'], ['nexus', 'Nexus Mods'], ['topmods', 'Top Mods'], ['patreon', 'Patreon'], ['downloads', 'Downloads'], ['arcade', 'Arcade'], ['settings', 'Settings']];
 function renderTabs() {
   const nav = document.getElementById('tabs');
-  nav.replaceChildren(...TABS.map(([id, label]) => h('button', { class: `tab ${state.tab === id ? 'active' : ''}`, text: label, onclick: () => go(id) })));
+  nav.replaceChildren(...TABS.map(([id, label]) => h('button', { class: `tab ${state.tab === id ? 'active' : ''}`, onclick: () => go(id) }, label, id === 'patreon' ? alpha() : null)));
 }
 function go(tab) { state.tab = tab; renderTabs(); render(); }
-function render() { ({ mods: renderMods, nexus: renderNexus, patreon: renderPatreon, downloads: renderDownloads, settings: renderSettings })[state.tab](); }
+function render() { ({ mods: renderMods, nexus: renderNexus, topmods: renderTopMods, patreon: renderPatreon, downloads: renderDownloads, arcade: renderArcade, settings: renderSettings })[state.tab](); }
+
+async function renderArcade() {
+  const box = view();
+  box.replaceChildren(h('div', { class: 'panel' }, h('h3', { text: 'Arcade' }), h('div', { class: 'hint', text: 'Checking the game folder…' })));
+  let files = [];
+  try { files = await call('arcade:list'); } catch {}
+  box.replaceChildren(
+    h('div', { class: 'panel' },
+      h('h3', { text: 'Arcade' }),
+      h('div', { class: 'hint' }, 'Drop an HTML5 game into the folder below \u2014 any .html file inside it (at any depth) shows up here to play.'),
+      h('div', { class: 'row' }, h('button', { text: 'Open game folder', onclick: () => safe(() => call('arcade:openGameFolder')) })),
+      files.length
+        ? h('div', { class: 'row' }, ...files.map((f) => h('button', { text: `Play ${f}`, onclick: () => safe(() => call('arcade:play', f)) })))
+        : h('div', { class: 'empty', text: 'No .html files found in the game folder yet.' }),
+    ),
+  );
+}
 
 function reportDeploy(r) {
   if (r && r.skipped && r.skipped.length) toast(r.skipped.map((s) => `${s.id}: ${s.reason}`).join('\n'), 'error');
@@ -137,9 +291,15 @@ function modCard(m) {
       h('button', { text: 'Files…', onclick: () => lookupMod(String(m.mod_id)) })));
 }
 
+function extractNexusModId(input) {
+  const raw = (input || '').trim();
+  const urlMatch = raw.match(/nexusmods\.com\/[^/\s]+\/mods\/(\d+)/i);
+  return urlMatch ? Number(urlMatch[1]) : Number(raw);
+}
+
 async function lookupMod(id) {
-  const n = Number(id);
-  if (!Number.isInteger(n) || n <= 0) return toast('Enter a numeric mod ID (the number in the mod page URL).', 'error');
+  const n = extractNexusModId(id);
+  if (!Number.isInteger(n) || n <= 0) return toast('Enter a numeric mod ID, or paste a Nexus mod page link.', 'error');
   await safe(async () => {
     const [mod, files] = await Promise.all([call('nexus:mod', n), call('nexus:files', n)]);
     state.nexus.mod = mod; state.nexus.modId = String(n);
@@ -155,7 +315,7 @@ function downloadNexus(modId, file) {
     .then((r) => {
       refreshLibrary();
       if (r.mode === 'manual') {
-        clippy.say(`On the Nexus page click "Manual Download", then save the file. I'll grab it from ${r.watchDir} and install it.`, 16000);
+        clippy.say(`On the Nexus page click "Manual Download", then save the file. It gets picked up from ${r.watchDir} and installed.`, 16000);
         go('downloads');
       } else clippy.say(`Installed ${file.name}!`);
     })
@@ -167,18 +327,28 @@ function renderNexus() {
   const s = state.settings;
   const key = h('input', { type: 'password', placeholder: 'Paste your personal API key' });
   const status = state.user
-    ? h('div', {}, `Logged in as `, h('b', { text: state.user.name }), state.user.isPremium ? ' (Premium: tries direct downloads)' : ' (free: you click Manual Download on the site, I import the file)', ' ',
+    ? h('div', {}, `Logged in as `, h('b', { text: state.user.name }), state.user.isPremium ? ' (Premium: tries direct downloads)' : ' (free: click Manual Download on the site and the file is imported automatically)', ' ',
         h('button', { text: 'Log out', onclick: () => safe(async () => { await call('nexus:logout'); state.user = null; renderNexus(); }) }))
     : h('div', {},
         h('div', { text: 'Not logged in.' }),
         h('div', { class: 'row' },
-          s?.nexusAppSlug ? h('button', { class: 'primary', text: 'Log in with Nexus Mods', onclick: () => safe(async () => { setStatus('Waiting for approval in your browser…'); state.user = await call('nexus:login'); renderNexus(); clippy.say(`Welcome, ${state.user.name}!`); }) }) : null,
-          h('button', { text: 'Get my key from Nexus (opens browser)', onclick: () => safe(() => call('nexus:openApiKeyPage')) }),
+          h('button', { class: 'primary', text: 'Get API key from Nexus (opens browser)', onclick: () => safe(() => call('nexus:openApiKeyPage')) }),
           h('div', { class: 'grow' }, key),
           h('button', { text: 'Use API key', onclick: () => safe(async () => { state.user = await call('nexus:setKey', key.value); if (!state.user) toast('That key was not accepted.', 'error'); renderNexus(); }) })),
-        s?.nexusAppSlug ? null : h('div', { class: 'hint', text: 'The one-click "Log in with Nexus Mods" button needs a Nexus-registered application slug (Settings) — that\'s a Nexus requirement, not something this app can skip. Until you have one, click "Get my key from Nexus" to open your account page in the browser, then paste the key here.' }));
+        h('div', { class: 'hint', text: 'Click "Get API key from Nexus" to open your account\'s API key page in the browser, then paste the key here.' }));
 
-  const idInput = h('input', { type: 'text', placeholder: 'Mod ID, e.g. 1234', value: state.nexus.modId, style: 'width:140px' });
+  const idInput = h('input', {
+    type: 'text', placeholder: 'Mod ID, or paste a mod page link', value: state.nexus.modId, style: 'width:220px',
+    onpaste: (e) => {
+      const pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (/nexusmods\.com\/[^/\s]+\/mods\/\d+/i.test(pasted)) {
+        e.preventDefault();
+        const n = extractNexusModId(pasted);
+        idInput.value = String(n);
+        lookupMod(idInput.value);
+      }
+    },
+  });
   const lookup = h('div', { class: 'panel' }, h('h3', { text: 'Look up a mod' }),
     h('div', { class: 'row' }, idInput, h('button', { text: 'Look up', onclick: () => lookupMod(idInput.value.trim()) })));
 
@@ -187,7 +357,7 @@ function renderNexus() {
     lookup.append(
       h('div', {}, h('b', { text: m.name }), ` by ${m.author || 'unknown'} `, h('button', { text: 'Open page', onclick: () => safe(() => call('nexus:openModPage', m.mod_id)) })),
       h('div', { class: 'hint', text: m.summary || '' }),
-      state.nexus.files.length ? h('div', { class: 'hint', text: state.user?.isPremium ? 'Premium: I try a direct download, and fall back to the manual flow if Nexus refuses.' : `Nexus only offers Manual Download for this game. Click Get, use Manual Download on the page, and I'll import the file from ${state.settings?.effectiveDownloadsDir || 'your Downloads folder'}.` }) : null,
+      state.nexus.files.length ? h('div', { class: 'hint', text: state.user?.isPremium ? 'Premium: a direct download is tried first, with the manual flow as the fallback if Nexus refuses.' : `Nexus only offers Manual Download for this game. Click Get, use Manual Download on the page, and the file is imported from ${state.settings?.effectiveDownloadsDir || 'your Downloads folder'}.` }) : null,
       state.nexus.files.length ? h('table', {},
         h('thead', {}, h('tr', {}, ['File', 'Version', 'Type', 'Size', ''].map((t) => h('th', { text: t })))),
         h('tbody', {}, state.nexus.files.map((f) => h('tr', {},
@@ -202,6 +372,41 @@ function renderNexus() {
 
   view().replaceChildren(h('div', { class: 'panel' }, h('h3', { text: 'Account' }), status), lookup, browse);
   setStatus(`Nexus game: ${s?.nexusGameDomain || '?'}`);
+}
+
+function topModCard(m) {
+  return h('div', { class: 'card' },
+    m.thumbnail ? h('img', { src: m.thumbnail, alt: '' }) : null,
+    h('div', { class: 'meta' },
+      h('div', { class: 'name', text: m.title }),
+      h('button', { class: 'primary', text: 'View \u0026 get (opens browser)', onclick: () => safe(async () => {
+        const r = await call('topmods:download', m.url, m.title);
+        clippy.say('On the mod page, click through to the file host and download it \u2014 it gets picked up from your Downloads folder and installed.', 16000);
+        go('downloads');
+        return r;
+      }) })));
+}
+
+async function renderTopMods() {
+  const loadList = async (kind) => {
+    state.topmods.kind = kind;
+    renderTopMods();
+    try {
+      state.topmods.list = await call('topmods:list', kind);
+    } catch (e) {
+      state.topmods.list = [];
+      toast(e.message, 'error');
+    }
+    renderTopMods();
+  };
+  view().replaceChildren(
+    h('div', { class: 'panel' }, h('h3', { text: 'Top Mods (top-mods.com)' }),
+      h('div', { class: 'hint', text: 'An unofficial, fan-run mod site \u2014 not affiliated with People Playground or Nexus. Files are hosted on third-party file lockers, so clicking a mod opens its page in your browser; download it there like usual and it is imported from your Downloads folder, same as a manual Nexus download.' }),
+      h('div', { class: 'row' }, [['newest', 'Newest'], ['downloaded', 'Top downloaded'], ['rated', 'Top rated'], ['commented', 'Most commented']].map(([k, label]) =>
+        h('button', { class: state.topmods.kind === k ? 'primary' : '', text: label, onclick: () => loadList(k) }))),
+      state.topmods.list.length ? h('div', { class: 'cards' }, state.topmods.list.slice(0, 30).map(topModCard))
+        : h('div', { class: 'hint', text: state.topmods.kind ? 'No mods found.' : 'Pick a list above.' })));
+  setStatus('Top Mods');
 }
 
 function renderPatreon() {
@@ -229,9 +434,9 @@ function renderPatreon() {
   view().replaceChildren(
     h('div', { class: 'panel' }, h('h3', { text: 'Patreon account' }), account,
       h('div', { class: 'hint', text: 'Your password goes to patreon.com only. The app keeps the session cookie (encrypted) to download posts you can access.' })),
-    h('div', { class: 'panel' }, h('h3', { text: 'Download a mod from a Patreon post' }),
+    h('div', { class: 'panel' }, h('h3', { text: 'Download a mod from a Patreon post' }, alpha()),
       h('div', { class: 'row' }, h('div', { class: 'grow' }, url), btn), log));
-  setStatus('Patreon downloads use patreon-dl.');
+  setStatus('Ready.');
 }
 
 function renderDownloads() {
@@ -274,6 +479,34 @@ async function renderDllFixPanel() {
       }) }) : null));
 }
 
+async function renderFirewallPanel() {
+  const box = document.getElementById('firewallbox');
+  if (!box) return;
+  box.replaceChildren(h('div', { class: 'hint', text: 'Checking\u2026' }));
+  let st;
+  try {
+    st = await call('firewall:status');
+  } catch (e) {
+    box.replaceChildren(h('div', { class: 'hint err', text: e.message }));
+    return;
+  }
+  if (!st.supported) {
+    box.replaceChildren(h('div', { class: 'hint', text: 'Security mode uses Windows Firewall rules and is only available on Windows.' }));
+    return;
+  }
+  box.replaceChildren(
+    h('div', { class: st.active ? 'hint' : 'hint', text: st.active ? '\u2714 People Playground is network-isolated.' : 'People Playground has normal network access.' }),
+    h('div', { class: 'row' },
+      h('button', { class: st.active ? '' : 'primary', text: 'Turn on (block network)', disabled: st.active, onclick: () => safe(async () => {
+        clippy.say('Windows will ask you to approve an administrator prompt \u2014 that\u2019s to create the firewall rule.', 12000);
+        await call('firewall:enable'); toast('People Playground is now blocked from the network.'); renderFirewallPanel();
+      }) }),
+      h('button', { text: 'Turn off', disabled: !st.active, onclick: () => safe(async () => {
+        clippy.say('Windows will ask you to approve an administrator prompt \u2014 that\u2019s to remove the firewall rule.', 12000);
+        await call('firewall:disable'); toast('Network access restored.'); renderFirewallPanel();
+      }) })));
+}
+
 async function renderSettings() {
   state.settings = await call('settings:get');
   const s = state.settings;
@@ -285,7 +518,6 @@ async function renderSettings() {
     downloadsWatchDir: h('input', { type: 'text', value: s.downloadsWatchDir, placeholder: s.effectiveDownloadsDir }),
     ppModsDir: h('input', { type: 'text', value: s.ppModsDir, placeholder: s.effectiveModsDir }),
     nexusGameDomain: h('input', { type: 'text', value: s.nexusGameDomain }),
-    nexusAppSlug: h('input', { type: 'text', value: s.nexusAppSlug, placeholder: 'optional, enables browser login' }),
     nexusApiKey: h('input', { type: 'password', placeholder: s.hasNexusKey ? '(saved, leave blank to keep)' : 'personal API key' }),
     patreonCookie: h('input', { type: 'password', placeholder: s.hasPatreonCookie ? '(saved, leave blank to keep)' : 'session_id=…' }),
   };
@@ -310,15 +542,17 @@ async function renderSettings() {
     h('div', { class: 'panel' }, h('h3', { text: 'Bug fixes' }),
       h('div', { class: 'hint', text: 'The latest People Playground update shipped a broken Assembly-CSharp.dll that stops mods from working. This replaces it with a fixed copy bundled with Clippy Mod Manager.' }),
       h('div', { id: 'dllfixbox' })),
+    h('div', { class: 'panel' }, h('h3', { text: 'Security mode' }, alpha()),
+      h('div', { class: 'hint', text: 'Blocks People Playground.exe from the network entirely (Windows Firewall), in case a future update or mod tries to phone home. Needs an administrator prompt to turn on or off, and stops the game from reaching Steam too \u2014 so Steam can\u2019t auto-update it while it\u2019s on, and you\u2019ll want "Launch directly" in Game settings above rather than "Through Steam".' }),
+      h('div', { id: 'firewallbox' })),
     h('div', { class: 'panel' }, h('h3', { text: 'Installing' }),
       h('div', { class: 'row' }, del, h('label', { for: 'delzips', style: 'display:inline;margin:0', text: 'Delete downloaded archives (.zip/.7z/.rar) after they install' })),
       h('div', { class: 'hint', text: 'Only affects files downloaded through this app (Nexus and Patreon). Archives you add yourself with "Add archive" are never deleted.' })),
     h('div', { class: 'panel' }, h('h3', { text: 'Nexus Mods' }),
       ...field('Nexus game domain', 'nexusGameDomain', 'The part of the Nexus URL after nexusmods.com/'),
-      ...field('Application slug', 'nexusAppSlug', 'From your Nexus application registration.'),
       ...field('API key', 'nexusApiKey'),
       ...field('Browser downloads folder', 'downloadsWatchDir', 'Where your browser saves files. Manual Nexus downloads are picked up from here.')),
-    h('div', { class: 'panel' }, h('h3', { text: 'Patreon' }),
+    h('div', { class: 'panel' }, h('h3', { text: 'Patreon' }, alpha()),
       ...field('Cookie', 'patreonCookie', 'Copied from your logged-in browser session.')),
     h('div', { class: 'row' },
       h('button', { class: 'primary', text: 'Save', onclick: () => safe(async () => {
@@ -331,6 +565,7 @@ async function renderSettings() {
   setStatus('Settings');
   if (s.ppGameDir) check();
   renderDllFixPanel();
+  renderFirewallPanel();
 }
 
 window.cmm.on('jobs', (jobs) => { state.jobs = jobs; if (state.tab === 'downloads') renderDownloads(); const active = jobs.filter((j) => j.status === 'downloading' || j.status === 'installing').length; if (active) setStatus(`${active} download(s) in progress…`); });
@@ -355,10 +590,20 @@ async function patreonLogin() {
   }
 }
 
+function showDiscordBanner() {
+  const banner = h('div', { class: 'discord-banner' },
+    h('span', { text: '\ud83c\udfae Join our Discord community!' }),
+    h('button', { text: 'Join', onclick: () => safe(() => call('app:openDiscord')) }),
+    h('button', { class: 'discord-close', text: '\u00d7', 'aria-label': 'Dismiss', onclick: (e) => e.currentTarget.closest('.discord-banner').remove() }),
+  );
+  document.querySelector('.window').prepend(banner);
+}
+
 (async function boot() {
   renderTabs();
   await safe(async () => { state.settings = await call('settings:get'); state.jobs = await call('jobs:list'); await refreshLibrary(); });
   render();
   refreshNexusStatus();
+  showDiscordBanner();
   clippy.say('Hi! It looks like you\'re installing mods. Would you like help?');
 })();

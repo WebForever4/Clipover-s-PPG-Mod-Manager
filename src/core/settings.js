@@ -8,7 +8,6 @@ const DEFAULTS = {
   ppModsDir: '',
   nexusGameDomain: 'peopleplayground',
   nexusApiKey: '',
-  nexusAppSlug: '',
   patreonCookie: '',
   patreonUserAgent: '',
 };

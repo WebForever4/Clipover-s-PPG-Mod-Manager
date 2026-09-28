@@ -1,14 +1,18 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { createPaths } = require('../core/paths');
 const { Settings } = require('../core/settings');
 const { Library } = require('../core/library');
 const { ModManagerService } = require('../core/service');
 const { detectGame, validateGameDir } = require('../core/gamedetect');
 const dllfix = require('../core/dllfix');
+const firewall = require('../core/firewall');
 const { loginToPatreon, clearPatreonSession } = require('./patreonLogin');
+const { browserDownload } = require('./patreonBrowserDownload');
 
 let win = null;
+let gameWin = null;
 let service = null;
 const pendingNxm = [];
 let patreonLoginHandle = null;
@@ -19,6 +23,65 @@ function fixedDllPath() {
     : path.join(__dirname, '../../resources/fixes/Assembly-CSharp.dll');
 }
 
+function gameDir() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'game')
+    : path.join(__dirname, '../../resources/game');
+}
+
+function findHtmlFiles(dir, base = dir) {
+  let found = [];
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return found;
+  }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) found = found.concat(findHtmlFiles(full, base));
+    else if (/\.html?$/i.test(e.name)) found.push(path.relative(base, full));
+  }
+  return found.sort();
+}
+
+function playArcadeGame(relPath) {
+  const dir = path.resolve(gameDir());
+  let target;
+  if (relPath) {
+    target = path.resolve(dir, relPath);
+    if (target !== dir && !target.startsWith(dir + path.sep)) {
+      throw new Error('Invalid game file.');
+    }
+  } else {
+    const found = findHtmlFiles(dir);
+    if (!found.length) {
+      throw new Error(`No .html files found yet. Drop your HTML5 game into ${dir} (any .html file, anywhere inside that folder, works) and hit Play again.`);
+    }
+    const preferred = found.find((f) => path.basename(f).toLowerCase() === 'index.html');
+    target = path.join(dir, preferred || found[0]);
+  }
+  if (!fs.existsSync(target)) {
+    throw new Error('That game file no longer exists.');
+  }
+  if (gameWin && !gameWin.isDestroyed()) {
+    gameWin.focus();
+    return;
+  }
+  gameWin = new BrowserWindow({
+    width: 480,
+    height: 800,
+    title: 'Arcade',
+    backgroundColor: '#000000',
+    autoHideMenuBar: true,
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+  });
+  gameWin.setMenuBarVisibility(false);
+  gameWin.loadFile(target);
+  gameWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  gameWin.on('closed', () => { gameWin = null; });
+}
+
 function openExternal(url) {
   if (!/^(https:|steam:)\/\//i.test(url)) throw new Error('Blocked non-https link.');
   return shell.openExternal(url);
@@ -26,6 +89,14 @@ function openExternal(url) {
 
 const findNxm = (argv) => argv.find((a) => /^nxm:\/\//i.test(a));
 const send = (channel, payload) => win && !win.isDestroyed() && win.webContents.send(channel, payload);
+
+function reportFatal(prefix, err) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(prefix, err);
+  send('toast', { kind: 'error', text: `${prefix}: ${message}` });
+}
+process.on('uncaughtException', (err) => reportFatal('Something went wrong', err));
+process.on('unhandledRejection', (reason) => reportFatal('Something went wrong', reason));
 
 async function handleNxm(link) {
   if (!service) return void pendingNxm.push(link);
@@ -62,6 +133,8 @@ if (!app.requestSingleInstanceLock()) {
       defaultModsDir: path.join(app.getPath('documents'), 'People Playground', 'mods'),
       defaultDownloadsDir: app.getPath('downloads'),
       openExternal,
+      patreonDownloadFetch: (u, o) => session.fromPartition('persist:patreon-login').fetch(u, o),
+      patreonBrowserDownload: browserDownload,
     });
     service.on('jobs', (jobs) => send('jobs', jobs));
     service.on('installed', () => send('library-changed'));
@@ -107,8 +180,6 @@ function registerIpc(settings) {
     'profile:create': (name, copy) => { service.library.createProfile(name, copy ? service.library.profiles().active : undefined); service.library.setActive(name.trim()); return service.applyChanges(); },
     'profile:delete': (name) => { service.library.deleteProfile(name); return service.applyChanges(); },
     'nexus:status': () => service.nexusStatus(),
-    'nexus:login': () => service.nexusLogin(),
-    'nexus:cancelLogin': () => service.cancelNexusLogin(),
     'nexus:setKey': (key) => service.nexusSetKey(key),
     'nexus:logout': () => service.nexusLogout(),
     'nexus:openApiKeyPage': () => openExternal('https://www.nexusmods.com/users/myaccount?tab=api'),
@@ -118,6 +189,8 @@ function registerIpc(settings) {
     'nexus:download': (modId, fileId) => service.nexusDownload({ modId, fileId }),
     'nexus:openFilePage': (modId, fileId) => openExternal(`https://www.nexusmods.com/${service.game()}/mods/${modId}?tab=files&file_id=${fileId}`),
     'nexus:openModPage': (modId) => openExternal(`https://www.nexusmods.com/${service.game()}/mods/${modId}`),
+    'topmods:list': (kind) => service.topModsList(kind),
+    'topmods:download': (url, title) => service.startTopModsDownload({ url, title }),
     'patreon:login': async () => {
       patreonLoginHandle = loginToPatreon(win);
       try {
@@ -139,6 +212,9 @@ function registerIpc(settings) {
     'dllfix:status': () => dllfix.status({ gameDir: settings.get('ppGameDir'), fixedDll: fixedDllPath() }),
     'dllfix:apply': () => dllfix.applyFix({ gameDir: settings.get('ppGameDir'), fixedDll: fixedDllPath() }),
     'dllfix:revert': () => dllfix.revertFix({ gameDir: settings.get('ppGameDir') }),
+    'firewall:status': () => firewall.status(),
+    'firewall:enable': () => firewall.enable(validateGameDir(settings.get('ppGameDir')).exe),
+    'firewall:disable': () => firewall.disable(),
     'app:openGameFolder': () => { const d = settings.get('ppGameDir'); if (!d) throw new Error('Set the game folder in Settings first.'); return shell.openPath(d); },
     'app:openModsFolder': () => shell.openPath(service.modsDir()),
     'app:registerNxm': () => (process.defaultApp
@@ -154,6 +230,10 @@ function registerIpc(settings) {
       const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
       return r.canceled ? null : r.filePaths[0];
     },
+    'arcade:play': (relPath) => playArcadeGame(relPath),
+    'arcade:list': () => findHtmlFiles(gameDir()),
+    'arcade:openGameFolder': () => { fs.mkdirSync(gameDir(), { recursive: true }); return shell.openPath(gameDir()); },
+    'app:openDiscord': () => openExternal('https://discord.gg/QtvavUDDjp'),
   };
   for (const [name, fn] of Object.entries(handlers)) {
     ipcMain.handle(name, async (_e, ...args) => {

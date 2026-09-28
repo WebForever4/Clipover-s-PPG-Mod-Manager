@@ -3,7 +3,8 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const path = require('path');
 const { randomUUID } = require('crypto');
-const { NexusClient, NexusError, ssoLogin } = require('./nexus');
+const { NexusClient, NexusError } = require('./nexus');
+const { TopModsClient } = require('./topmods');
 const { parseNxm } = require('./nxm');
 const { downloadFile } = require('./downloader');
 const { installFromArchive, extractArchive } = require('./installer');
@@ -13,14 +14,14 @@ const { validateGameDir } = require('./gamedetect');
 const { watchForArchive } = require('./watcher');
 
 class ModManagerService extends EventEmitter {
-  constructor({ paths, settings, library, defaultModsDir, defaultDownloadsDir, openExternal, fetchImpl, extract = extractArchive, patreonDownload = runPatreonDownload, WebSocketImpl, spawnImpl = spawn, watch = watchForArchive }) {
+  constructor({ paths, settings, library, defaultModsDir, defaultDownloadsDir, openExternal, fetchImpl, extract = extractArchive, patreonDownload = runPatreonDownload, patreonDownloadFetch, patreonBrowserDownload, spawnImpl = spawn, watch = watchForArchive }) {
     super();
-    Object.assign(this, { paths, settings, library, defaultModsDir, defaultDownloadsDir, openExternal, fetchImpl, extract, patreonDownload, WebSocketImpl, spawnImpl, watch });
+    Object.assign(this, { paths, settings, library, defaultModsDir, defaultDownloadsDir, openExternal, fetchImpl, extract, patreonDownload, patreonDownloadFetch, patreonBrowserDownload, spawnImpl, watch });
     this._cancels = new Map();
     this.nexus = new NexusClient({ apiKey: settings.get('nexusApiKey'), fetchImpl });
+    this.topMods = new TopModsClient({ fetchImpl });
     this.jobs = new Map();
     this.user = null;
-    this._sso = null;
   }
 
   modsDir() {
@@ -93,20 +94,6 @@ class ModManagerService extends EventEmitter {
     return this.user;
   }
 
-  async nexusLogin() {
-    const appSlug = this.settings.get('nexusAppSlug');
-    if (!appSlug) throw new NexusError('Set your Nexus application slug in Settings, or paste an API key instead.', { code: 'NO_APP' });
-    this._sso = ssoLogin({ appSlug, openUrl: this.openExternal, WebSocketImpl: this.WebSocketImpl });
-    try {
-      const key = await this._sso.promise;
-      this.settings.set({ nexusApiKey: key });
-    } finally {
-      this._sso = null;
-    }
-    return this.nexusStatus();
-  }
-  cancelNexusLogin() { if (this._sso) this._sso.cancel(); }
-
   async nexusSetKey(key) {
     this.settings.set({ nexusApiKey: key });
     return this.nexusStatus();
@@ -168,12 +155,20 @@ class ModManagerService extends EventEmitter {
     const game = this.game();
     let modName;
     try { modName = (await this.nexus.getMod(game, modId)).name; } catch {}
-    const job = this._job(`Waiting for "${modName || `mod ${modId}`}" to finish downloading in ${this.watchDir()}`);
+    return this._startExternalManualDownload({
+      openUrl: `https://www.nexusmods.com/${game}/mods/${modId}?tab=files${fileId ? `&file_id=${fileId}` : ''}`,
+      label: modName || `mod ${modId}`,
+      source: { type: 'nexus', game, modId, fileId, manual: true },
+    });
+  }
+
+  async _startExternalManualDownload({ openUrl, label, source }) {
+    const job = this._job(`Waiting for "${label}" to finish downloading in ${this.watchDir()}`);
     this._update(job, { status: 'waiting' });
     const w = this.watch({ dir: this.watchDir(), since: Date.now() });
     this._cancels.set(job.id, w.cancel);
     try {
-      this.openExternal(`https://www.nexusmods.com/${game}/mods/${modId}?tab=files${fileId ? `&file_id=${fileId}` : ''}`);
+      this.openExternal(openUrl);
     } catch (e) {
       w.cancel();
       this._cancels.delete(job.id);
@@ -185,7 +180,7 @@ class ModManagerService extends EventEmitter {
         this._update(job, { status: 'installing', label: `Installing ${path.basename(file)}` });
         const entry = await installFromArchive({
           archive: file, library: this.library, paths: this.paths, extract: this.extract,
-          meta: { fallbackName: modName, source: { type: 'nexus', game, modId, fileId, manual: true } },
+          meta: { fallbackName: label, source },
         });
         this.cleanupArchive(file);
         this._update(job, { status: 'done' });
@@ -197,6 +192,18 @@ class ModManagerService extends EventEmitter {
       })
       .finally(() => this._cancels.delete(job.id));
     return job.id;
+  }
+
+  async topModsList(kind) {
+    return this.topMods.list(kind);
+  }
+
+  async startTopModsDownload({ url, title }) {
+    return this._startExternalManualDownload({
+      openUrl: url,
+      label: title || 'top-mods.com mod',
+      source: { type: 'topmods', url },
+    });
   }
 
   async handleNxm(link) {
@@ -241,6 +248,8 @@ class ModManagerService extends EventEmitter {
         userAgent: this.settings.get('patreonUserAgent'),
         onLog,
         signal: abortController.signal,
+        downloadFetchImpl: this.patreonDownloadFetch,
+        browserDownloadImpl: this.patreonBrowserDownload,
       });
       const archives = listArchives(outDir);
       if (!archives.length) throw new Error(`No mod archives (.zip/.7z/.rar) were found in that post. Files are in ${outDir}.`);

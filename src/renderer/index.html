@@ -17,10 +17,10 @@
   <div id="clippy" class="clippy">
     <div class="bubble" id="bubble"></div>
     <svg viewBox="0 0 100 140" width="100" height="140" aria-label="Clippy">
-      <g transform="rotate(-6 50 70)">
+      <g transform="rotate(-6 50 70)" id="clippy-rig">
         <path id="wire" d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#3f4249" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#a9aeb9" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#eef0f5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.4 -1.4)" opacity=".9"/>
+        <path id="wire-mid" d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#a9aeb9" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path id="wire-hi" d="M46 80 L46 36 C46 14 74 14 74 36 L74 104 C74 134 26 134 26 104 L26 42 C26 2 90 2 90 42 L90 98" fill="none" stroke="#eef0f5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1.4 -1.4)" opacity=".9"/>
         <g class="brows" fill="none" stroke="#222" stroke-width="2.6" stroke-linecap="round">
           <path d="M33 32 Q43 24 54 30"/><path d="M58 30 Q69 24 79 32"/>
         </g>
@@ -30,6 +30,7 @@
           <circle class="pupil" cx="45" cy="49" r="4.2" fill="#000"/>
           <circle class="pupil" cx="69" cy="49" r="4.2" fill="#000"/>
         </g>
+        <circle id="wire-end-handle" cx="90" cy="98" r="9" fill="transparent" />
       </g>
     </svg>
   </div>

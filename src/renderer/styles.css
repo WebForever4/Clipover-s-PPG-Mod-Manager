@@ -50,8 +50,15 @@ pre.log { background: #000; color: #0f0; padding: 6px; height: 180px; overflow: 
 .eyes { transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
 .brows { transition: transform .15s; }
 .clippy:hover .brows { transform: translateY(-3px); }
+#wire-end-handle { cursor: grab; touch-action: none; }
+#wire-end-handle:active { cursor: grabbing; }
+.clippy.unraveling { cursor: default; }
 .pupil { transition: transform .08s linear; }
 @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 #toasts { position: fixed; left: 24px; bottom: 34px; display: flex; flex-direction: column; gap: 6px; z-index: 60; }
 .toast { background: var(--tip); border: 2px outset var(--hi); padding: 6px 10px; max-width: 420px; }
 .toast.error { border-color: #f99 #a00 #a00 #f99; }
+.discord-banner { display: flex; align-items: center; gap: 10px; background: #5865F2; color: #fff; padding: 6px 10px; font-weight: bold; }
+.discord-banner button { border: 2px outset #fff; background: #fff; color: #5865F2; font-weight: bold; padding: 2px 10px; cursor: pointer; }
+.discord-banner .discord-close { margin-left: auto; border: none; background: transparent; color: #fff; font-weight: bold; font-size: 16px; line-height: 1; padding: 0 4px; }
+.alpha { display: inline-block; margin-left: 6px; padding: 0 4px; background: #c0392b; color: #fff; font-size: 9px; font-weight: bold; letter-spacing: 1px; border: 1px solid #7b241c; vertical-align: middle; }

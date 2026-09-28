@@ -143,6 +143,21 @@ test('free account: opens the Nexus page, then imports the archive the browser s
   assert.deepEqual(mod.source, { type: 'nexus', game: 'peopleplayground', modId: 42, fileId: 7, manual: true });
 });
 
+test('top-mods.com download: opens the mod page in the browser, then imports the archive the browser saves', async () => {
+  const ctx = setup();
+  const svc = manualService(ctx);
+  svc.watch = (o) => require('../src/core/watcher').watchForArchive({ ...o, pollMs: 20, stablePolls: 1 });
+  const jobId = await svc.startTopModsDownload({ url: 'https://top-mods.com/mods/people-playground/npc/1-cool-mod.html', title: 'Cool Mod' });
+  assert.equal(svc.opened[0], 'https://top-mods.com/mods/people-playground/npc/1-cool-mod.html');
+  assert.equal(svc.jobs.get(jobId).status, 'waiting');
+
+  fs.writeFileSync(path.join(svc.watchDir(), 'Cool Mod.zip'), 'zipbytes');
+  await waitFor(() => svc.jobs.get(jobId).status === 'done');
+  const mod = ctx.library.list()[0];
+  assert.equal(mod.name, 'Big Gun');
+  assert.deepEqual(mod.source, { type: 'topmods', url: 'https://top-mods.com/mods/people-playground/npc/1-cool-mod.html' });
+});
+
 test('cancelling a waiting job removes it', async () => {
   const ctx = setup();
   const svc = manualService(ctx);

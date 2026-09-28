@@ -1,119 +1,101 @@
 # Clippy Mod Manager
 
-A lightweight mod manager for **People Playground**, with Nexus Mods and Patreon downloads and a Clippy theme.
-Modelled on Mod Organizer 2 (licensed GPL-3.0-or-later, like MO2).
+mod manager for People Playground with Nexus and Patreon downloads and a Clippy theme. it's loosely based on Mod Organizer 2 so it's GPL-3.0-or-later like MO2.
 
-## Run it
+still a work in progress. i haven't tested everything against the live sites, so expect some rough edges.
 
-Needs Node 20+ and Windows (Linux/macOS mostly work, but nxm:// registration is Windows-first).
+## running it
+
+you need Node 20 or newer and Windows. Linux and macOS mostly work but the nxm:// stuff is Windows first.
 
 ```
 npm install
-npm start          # launch
-npm test           # run the unit tests (no Electron needed)
-npm run dist       # build an installer (electron-builder)
+npm start
+npm test
 ```
 
-`npm install` here should be quick and need no compiler — the app's own dependencies (Electron,
-7-Zip, and the browser cookie reader) are all either pure JS or ship prebuilt binaries. Patreon
-downloading needs a separate tool; see below.
+npm test runs the unit tests and doesn't need Electron.
 
-## `patreon-dl` is bundled — what that means for `npm install`
+## making an exe
 
-`patreon-dl` (the engine patreon-dl-gui also uses) is a regular dependency, so `npm install` pulls it in
-automatically, and this app calls it **as a library, in-process** — not as a separate command-line tool.
-Earlier versions of this app spawned `patreon-dl` as a subprocess, which turned out to be fragile on
-Windows specifically (globally-installed npm CLIs are `.cmd` wrapper files, and Node's `spawn()` can't
-run those without extra configuration, so it could report "not found" even when correctly installed).
-Calling it as a library sidesteps that entire class of problem, and also means there's no longer a
-"patreon-dl path" setting to configure — there's only one copy, the one bundled with the app.
+```
+npm run dist
+```
 
-Two things worth knowing about what bundling it adds to `npm install`:
+that builds a Windows installer with electron-builder and drops it in the dist folder. the first run downloads some build tools so give it a minute.
 
-- It depends on **`better-sqlite3`**, a native module. Unlike the old `sqlite3` package (which caused
-  the build failures earlier in this project's history), `better-sqlite3` publishes prebuilt binaries
-  for far more platforms, including Windows on ARM, so it's much more likely to install cleanly with no
-  compiler needed. If it still fails to install on your system, that error will name `better-sqlite3`,
-  not this app's own code — the fixes are the same as before (a regular x64 Node.js install, or the
-  Visual Studio "Desktop development with C++" workload with a Windows SDK).
-- It also depends on **Puppeteer**, which downloads its own headless Chromium browser on install —
-  normally 200-300 MB, one time, unrelated to compilers. `npm install` will take noticeably longer and
-  more disk space than it did without `patreon-dl` bundled.
+if you want a single exe with no installer:
 
-## How it works
+```
+npm run dist:portable
+```
 
-- Mods are kept in the app's own library (`%APPDATA%/clippy-mod-manager/data/mods/<id>`).
-- Each **profile** is a list of enabled mods. Ticking a box links that mod folder into
-  `Documents/People Playground/mods` (junction, falling back to a copy). Only folders the app
-  created are ever removed, so your own mods are never touched, and a name clash is skipped, not overwritten.
-- A mod is a folder containing `mod.json`. Archives (.zip/.7z/.rar, via 7-Zip) are unpacked, the
-  shallowest `mod.json` is found, and that folder becomes the mod. Mods without one get a warning.
+a few things that trip people up:
 
-## Game folder
+- if it fails with a "cannot create symbolic link" error, either turn on Developer Mode in Windows settings or run the terminal as admin once.
+- it builds for whatever CPU you're on. for a specific one use `npm run dist:x64` or `npm run dist:arm64`.
+- for a custom icon put a 256x256 icon.ico in a folder called build and it gets picked up automatically.
+- the fixed Assembly-CSharp.dll in resources/fixes gets bundled into the exe, so don't delete that folder.
 
-Settings has a **People Playground game folder** selector (Browse, or Auto-detect, which reads your Steam
-library list). The app checks that `People Playground.exe` is there, launches the game from it, and can open
-it. **Play button launches** has two modes: *Directly* starts `People Playground.exe` without Steam (the default),
-or *Through Steam*. The **mods folder** is a separate setting (default `Documents/People Playground/mods`); point it at wherever
-your game actually loads mods from.
+## how mods are handled
 
-## Installing
+mods live in the app's own library at `%APPDATA%/clippy-mod-manager/data/mods/<id>`. every profile is just a list of enabled mods. ticking a box links that mod into `Documents/People Playground/mods`, and if a link doesn't work it copies the folder instead. the app only ever removes folders it made itself, so your own mods are safe, and if a name clashes it skips the mod instead of overwriting anything.
 
-Settings > Installing has an option to delete downloaded archives after they install. It only applies to files
-downloaded through the app (Nexus, Patreon), only after a successful install, and never to archives you add yourself.
+a mod is a folder with a `mod.json` in it. archives (.zip, .7z, .rar) get unpacked with 7-Zip, the shallowest `mod.json` is found and that folder becomes the mod. no `mod.json` means you get a warning.
 
-## Nexus Mods
+## game folder
 
-People Playground on Nexus only offers **Manual Download** (no "Mod Manager Download" button), so `nxm://`
-links can't be used. The flow is:
+Settings has a game folder picker. you can browse for it or hit auto-detect, which reads your Steam library list. it checks that `People Playground.exe` is actually in there. the Play button can launch the exe directly (default) or go through Steam. the mods folder is its own setting so point it wherever your game actually loads mods from.
 
-1. Browse or look up a mod by ID in the Nexus tab (needs a personal API key, or browser login with your own
-   registered Nexus application slug).
-2. Click **Get (manual)**. The Nexus page opens; click *Manual Download* and save the file as usual.
-3. The app watches your browser Downloads folder (Settings > Browser downloads folder), waits for the file to
-   finish, and installs it. You can also use *Add archive...* on the Mods tab at any time.
+there's also an option to delete downloaded archives after they install. it only touches files the app downloaded itself (Nexus and Patreon) and only after a successful install.
 
-Premium accounts first try a direct API download and fall back to the manual flow if Nexus refuses.
-Set the **game domain** in Settings to match the game's Nexus URL (default `peopleplayground`, unverified).
-The `nxm://` handler still exists (Settings > Use this app for nxm:// links) but is off by default.
+## Nexus
 
-## Patreon
+People Playground on Nexus only has Manual Download, no mod manager button, so nxm:// links don't work for it. here's the flow instead:
 
-**Logging in** opens a dedicated window inside the app, pointed at the real patreon.com login page —
-not a cookie file reader, and not a browser extension. It's a normal, sandboxed Electron window
-(`contextIsolation` on, `nodeIntegration` off, no script injected into the page), so the app cannot see
-or intercept anything you type there; it only reads the resulting session cookie once login succeeds,
-the same way any real browser holds a cookie after you log in.
+1. find a mod in the Nexus tab. you need a personal API key for that, and the Get API key button opens the right page in your browser so you can copy and paste it.
+2. hit Get. the Nexus page opens, click Manual Download and save the file.
+3. the app watches your Downloads folder, waits for the file to finish and installs it.
 
-Its user agent is set to a normal desktop Chrome string before it loads the page. Without that, Google
-blocks sign-in in windows it can identify as embedded (an anti-phishing measure aimed at fake login
-screens), so "Continue with Google" would otherwise fail with a "this browser may not be secure" error.
-This doesn't defeat any actual protection \u2014 it's the same header any real browser sends \u2014 it just stops
-Google's embedded-window detection from false-positiving on a legitimate first-party login you're doing
-for yourself. Email login and Google sign-in both work; Apple sign-in may still have trouble in embedded
-windows generally and hasn't been tested.
+premium accounts try a direct download first and fall back to the manual flow. you can also use Add archive on the Mods tab whenever.
 
-Your login is kept in its own persistent session (separate from Nexus, separate from the app's own
-data), so you shouldn't need to log in again on every launch. "Log out" clears it.
+i skipped Nexus SSO login on purpose. it only works for apps that Nexus staff approved and gave a slug to, so the copy and paste key button is the workaround.
 
-Once logged in, paste a post link and `patreon-dl` (see above) downloads it; archives found in the
-download are installed. You need an active subscription that includes the post.
+## Patreon (ALPHA)
 
-## Nexus login redirects to your browser too
+this one is alpha. downloads are still failing on some posts and it's the least tested part of the app.
 
-Unlike Patreon, Nexus has its own official SSO system for third-party apps: approving the login happens
-on nexusmods.com in your real default browser, and the app only receives the resulting API key over a
-private connection \u2014 no embedded window needed. It needs your own registered Nexus application slug in
-Settings; without one, paste a personal API key instead.
+logging in opens a normal Electron window pointed at the real patreon.com login. nothing gets injected into the page and the app never sees your password. it only reads the session cookie afterwards. the window uses a regular desktop Chrome user agent, otherwise Google blocks "Continue with Google" in embedded windows. email and Google login both work. Apple login is untested.
 
-## Known gaps / next steps
+for downloads you paste a post link. the app asks the same JSON API the Patreon site uses for that post, finds the files and downloads them. no third party libraries or native modules, which is what kept breaking npm install before.
 
-- Untested in a real Electron window and against the live Nexus and Patreon services (see notes in chat).
-- The `patreon-dl` library's exact event payloads (`targetBegin`, `phaseBegin`, task progress) are
-  ported from its documented API, not from a real run — the progress logging may need small
-  adjustments once you see real output. The exact `mod.json` fields are also from memory, not verified.
-- Apple sign-in inside the embedded Patreon login window hasn't been tested and may not work.
-- FFmpeg isn't wired up (`pathToFFmpeg` is left unset), so `patreon-dl` will fall back to a system
-  `ffmpeg` on PATH for the video formats that need it. Not relevant for mod archives specifically.
-- No update tracking or endorsements yet. A new file for the same Nexus mod installs as a separate entry.
-- The Clippy is a plain SVG. Swap in your own art in `src/renderer/index.html`.
+the file links go through patreon.com/file and Cloudflare likes to answer those with a 403 when the request doesn't look like a real browser. so downloads try a few things in order:
+
+1. a request through Electron's network stack using your login session
+2. a hidden browser window that loads the file link like you clicked it. if Cloudflare throws up a check the window pops up so you can pass it once
+
+you need a subscription that actually includes the post. if a post shows nothing downloadable the log says what Patreon sent back, which makes it easier to see what changed. this is all unofficial and Patreon can break it whenever.
+
+## Top Mods
+
+the Top Mods tab reads the listing pages on top-mods.com (newest, top downloaded, top rated, most commented). the site is fan run, has no API and isn't connected to the game dev or Nexus. the app just reads the HTML, so if they change their layout the lists can come back empty until `src/core/topmods.js` gets updated.
+
+files aren't downloaded automatically. mods there are hosted on file lockers like modsfire, so clicking a mod opens its page in your browser. download it like normal and the app picks it up from your Downloads folder.
+
+## security mode (ALPHA)
+
+alpha too, it has never been run against a real UAC prompt.
+
+Settings has a security mode that blocks `People Playground.exe` from the network with two Windows Firewall rules, one inbound and one outbound, for that exe only. i added it in case another bad update ever ships. it also cuts the game off from Steam, so Steam can't auto update it while it's on. use direct launch instead of Through Steam while it's enabled.
+
+rules need admin so you get a UAC prompt every time you turn it on or off. if you cancel, nothing changes. the tests cover the script generation and result parsing but i haven't run it against a real UAC prompt.
+
+## Assembly-CSharp.dll fix
+
+one People Playground update shipped a broken `Assembly-CSharp.dll` that stopped mods from loading. Settings has a bug fixes section with a fixed copy that swaps into your game folder. it backs up the original as `Assembly-CSharp.dll.pre-fix-backup` first and Revert to original puts it back.
+
+## still to do
+
+- Patreon downloads still need more real world testing
+- no update tracking or endorsements yet, a new file for the same Nexus mod installs as a separate entry
+- Clippy is a plain SVG right now, swap in your own art in `src/renderer/index.html`

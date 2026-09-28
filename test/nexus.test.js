@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { NexusClient, NexusError, ssoLogin } = require('../src/core/nexus');
+const { NexusClient, NexusError } = require('../src/core/nexus');
 
 function fakeFetch(handler) {
   const calls = [];
@@ -48,31 +48,3 @@ test('maps error statuses', async () => {
   await assert.rejects(c.validate(), (e) => e.code === 'BAD_KEY' && e.message === 'Bad key');
 });
 
-class FakeWS {
-  constructor(url) { FakeWS.last = this; this.url = url; this.sent = []; queueMicrotask(() => this.onopen && this.onopen()); }
-  send(s) { this.sent.push(JSON.parse(s)); }
-  close() { this.closed = true; }
-  push(obj) { this.onmessage({ data: JSON.stringify(obj) }); }
-}
-
-test('SSO handshake: id+protocol, opens browser, resolves with api key', async () => {
-  const opened = [];
-  const { promise, id } = ssoLogin({ appSlug: 'myapp', openUrl: (u) => opened.push(u), WebSocketImpl: FakeWS });
-  await new Promise((r) => setImmediate(r));
-  assert.deepEqual(FakeWS.last.sent[0], { id, protocol: 2 });
-  FakeWS.last.push({ success: true, data: { connection_token: 't' } });
-  assert.equal(opened[0], `https://www.nexusmods.com/sso?id=${id}&application=myapp`);
-  FakeWS.last.push({ success: true, data: { api_key: 'SECRET' } });
-  assert.equal(await promise, 'SECRET');
-  assert.ok(FakeWS.last.closed);
-});
-
-test('SSO failure and cancel', async () => {
-  const a = ssoLogin({ appSlug: 'x', openUrl() {}, WebSocketImpl: FakeWS });
-  await new Promise((r) => setImmediate(r));
-  FakeWS.last.push({ success: false, error: 'nope' });
-  await assert.rejects(a.promise, /nope/);
-  const b = ssoLogin({ appSlug: 'x', openUrl() {}, WebSocketImpl: FakeWS });
-  b.cancel();
-  await assert.rejects(b.promise, (e) => e.code === 'CANCELLED');
-});

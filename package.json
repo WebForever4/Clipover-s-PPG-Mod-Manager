@@ -6,13 +6,16 @@
   "main": "src/main/index.js",
   "license": "GPL-3.0-or-later",
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "start": "electron .",
     "test": "node --test test/*.test.js",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:portable": "electron-builder --win portable",
+    "dist:x64": "electron-builder --win --x64",
+    "dist:arm64": "electron-builder --win --arm64"
   },
   "dependencies": {
-    "7zip-bin": "^5.2.0",
-    "patreon-dl": "^3.9.0"
+    "7zip-bin": "^5.2.0"
   },
   "devDependencies": {
     "electron": "^38.0.0",
@@ -28,7 +31,14 @@
       "node_modules/7zip-bin/**"
     ],
     "extraResources": [
-      { "from": "resources/fixes", "to": "fixes" }
+      {
+        "from": "resources/fixes",
+        "to": "fixes"
+      },
+      {
+        "from": "resources/game",
+        "to": "game"
+      }
     ],
     "protocols": [
       {
@@ -39,7 +49,12 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis"
+      ]
+    },
+    "directories": {
+      "buildResources": "build"
     }
   }
 }

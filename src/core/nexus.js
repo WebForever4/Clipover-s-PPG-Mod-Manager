@@ -1,5 +1,3 @@
-const { randomUUID } = require('crypto');
-
 const BASE = 'https://api.nexusmods.com/v1';
 
 class NexusError extends Error {
@@ -80,59 +78,4 @@ class NexusClient {
   }
 }
 
-function ssoLogin({
-  appSlug,
-  openUrl,
-  WebSocketImpl = globalThis.WebSocket,
-  url = 'wss://sso.nexusmods.com',
-  connectTimeoutMs = 15000,
-  browserTimeoutMs = 300000,
-}) {
-  const id = randomUUID();
-  let cancel;
-  const promise = new Promise((resolve, reject) => {
-    let settled = false;
-    let timer;
-    let ws;
-    const finish = (err, key) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      try { ws && ws.close(); } catch {}
-      err ? reject(err) : resolve(key);
-    };
-    const arm = (ms, msg) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => finish(new NexusError(msg, { code: 'TIMEOUT' })), ms);
-    };
-    cancel = () => finish(new NexusError('Login cancelled.', { code: 'CANCELLED' }));
-    arm(connectTimeoutMs, 'Could not reach the Nexus login server.');
-    ws = new WebSocketImpl(url);
-    ws.onopen = () => ws.send(JSON.stringify({ id, protocol: 2 }));
-    ws.onmessage = (ev) => {
-      let msg;
-      try {
-        msg = JSON.parse(typeof ev.data === 'string' ? ev.data : String(ev.data));
-      } catch {
-        return finish(new NexusError('Bad response from the Nexus login server.'));
-      }
-      if (!msg.success) return finish(new NexusError(`Nexus login failed: ${msg.error || 'unknown error'}`));
-      const data = msg.data || {};
-      if (data.connection_token) {
-        arm(browserTimeoutMs, 'Timed out waiting for approval in the browser.');
-        try {
-          openUrl(`https://www.nexusmods.com/sso?id=${id}&application=${encodeURIComponent(appSlug)}`);
-        } catch (e) {
-          finish(e);
-        }
-      } else if (data.api_key) {
-        finish(null, data.api_key);
-      }
-    };
-    ws.onerror = () => finish(new NexusError('Connection to the Nexus login server failed.'));
-    ws.onclose = () => finish(new NexusError('The Nexus login server closed the connection.', { code: 'CLOSED' }));
-  });
-  return { id, promise, cancel: () => cancel() };
-}
-
-module.exports = { NexusClient, NexusError, ssoLogin };
+module.exports = { NexusClient, NexusError };
