@@ -1,3 +1,4 @@
+Join My Server https://discord.gg/QtvavUDDjp
 Clippy Mod Manager
 
 A mod manager for People Playground with a Clippy theme. It handles installing, enabling, and switching between mods, and can pull mods directly from Nexus Mods, Patreon, and top-mods.com.
