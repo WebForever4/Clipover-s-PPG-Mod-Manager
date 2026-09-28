@@ -1,80 +1,440 @@
-# Clippy Mod Manager
+\# Clippy Mod Manager
 
-a mod manager for People Playground with a Clippy theme. it handles installing, enabling and switching between mods, and it can pull mods straight from Nexus, Patreon and top-mods.com. loosely based on Mod Organizer 2.
 
-still a work in progress. some parts are marked ALPHA below, so expect a few rough edges.
 
-## getting it
+\*\*Portable versions available on GitHub:\*\*
 
-download the installer (or the portable exe) and run it. that's it. you don't need Node, npm or anything else installed. it only runs on Windows.
+https://github.com/WebForever4/Clipover-s-PPG-Mod-Manager
 
-## what it does
 
-- **profiles.** every profile is its own list of enabled mods, so you can keep a chaos setup and a vanilla setup side by side and swap in one click.
-- **tick to enable.** tick a mod and it shows up in your game's mods folder right away. untick it and it's gone. the app only ever removes folders it put there itself, so your own mods are never touched, and if a name clashes it skips the mod instead of overwriting anything.
-- **archives.** drop in .zip, .7z or .rar files and the app unpacks them and finds the mod inside. if a mod has no `mod.json` you get a warning on it.
-- **Nexus Mods.** search or look up a mod by ID right inside the app.
-- **Patreon (ALPHA).** paste a Patreon post link and it downloads and installs the mod for you.
-- **Top Mods.** browse top-mods.com (newest, top downloaded, top rated, most commented) without leaving the app.
-- **game folder picker.** browse for the game or hit auto-detect. the Play button can launch the exe directly or go through Steam.
-- **auto delete archives.** optional. deletes the archive after a successful install, but only for files the app downloaded itself.
-- **Assembly-CSharp.dll fix.** one game update shipped a broken dll that stopped mods from loading. Settings has a button that swaps in a fixed copy and backs up the original first. Revert to original puts it back.
-- **security mode (ALPHA).** blocks People Playground from the network using Windows Firewall, in case another bad update ever ships.
-- **Clippy.** he gives you tips and follows your mouse around. right click him to hide him and bring him back from Settings.
 
-## first time setup
+A mod manager for \*\*People Playground\*\* with a Clippy theme. It handles installing, enabling, and switching between mods, and can pull mods directly from \*\*Nexus Mods, Patreon, and top-mods.com\*\*.
 
-1. open Settings and set your game folder (auto-detect usually finds it).
-2. check the mods folder is where your game actually loads mods from. the default is `Documents/People Playground/mods`.
-3. if you want Nexus, click Get API key from Nexus, copy the key and paste it in.
-4. if you want Patreon, go to the Patreon tab and log in.
 
-## Nexus
 
-People Playground on Nexus only has Manual Download, so the flow is:
+Loosely based on \*\*Mod Organizer 2\*\*.
 
-1. find a mod in the Nexus tab and hit Get.
-2. the Nexus page opens in your browser. click Manual Download and save the file.
-3. the app watches your Downloads folder, waits for the file to finish and installs it.
 
-premium accounts try a direct download first and fall back to this if Nexus says no. you can also use Add archive on the Mods tab any time.
 
-## Patreon (ALPHA)
+> \*\*Work in progress:\*\* Some features are marked \*\*ALPHA\*\*, so expect a few rough edges.
 
-this one is alpha. some posts still fail to download and it's the least tested part of the app.
 
-logging in opens a normal window pointed at the real patreon.com login page. the app never sees your password, it only keeps the session afterwards. email login and Google login both work. Apple login is untested.
 
-paste a post link and hit Download and install. you need a subscription that actually includes the post. Patreon sometimes blocks the direct download, so the app falls back to a browser window. if Cloudflare shows a check in that window, pass it once and the download carries on.
+\## Getting It
 
-if a post fails, the log on the Patreon tab says what happened. that's the most useful thing to send me.
 
-## Top Mods
 
-top-mods.com is a fan run site and isn't connected to the game dev or Nexus. the app reads its listing pages, so if the site changes its layout the lists can come back empty until the app gets updated.
+Download the installer or portable `.exe` and run it. That's it.
 
-files aren't downloaded automatically. clicking a mod opens its page in your browser. download it like normal and the app picks it up from your Downloads folder.
 
-## security mode (ALPHA)
 
-Settings has a security mode that cuts People Playground off from the network with Windows Firewall rules that only apply to that exe. it also cuts the game off from Steam, so Steam can't auto update it while it's on. use direct launch instead of Through Steam while it's enabled.
+You \*\*do not need Node, npm, or anything else installed\*\*.
 
-turning it on or off needs admin, so Windows shows a UAC prompt each time. cancel it and nothing changes. alpha because it hasn't been tested on a lot of machines yet.
 
-## troubleshooting
 
-- **Patreon says nothing downloadable.** the log shows what Patreon sent back. send it to me.
-- **Patreon says logged in but downloads fail.** hit Log in again to refresh the session.
-- **Top Mods list is empty.** the site probably changed its layout and the app needs an update.
-- **mods don't load after a game update.** try the Assembly-CSharp.dll fix in Settings.
-- **a mod shows a warning.** it has no `mod.json`, so the game may ignore it.
+Currently, Clippy Mod Manager only supports \*\*Windows\*\*.
 
-## still to do
 
-- more Patreon testing
-- update tracking and endorsements. right now a new file for the same Nexus mod installs as a separate entry
-- proper Clippy art, he's a plain drawing for now
 
-## license
+\## Features
 
-GPL-3.0-or-later, same as Mod Organizer 2.
+
+
+\### Profiles
+
+
+
+Each profile has its own list of enabled mods, allowing you to keep different setups side by side.
+
+
+
+For example, you can have a \*\*vanilla profile\*\* and a \*\*chaos profile\*\* and switch between them with one click.
+
+
+
+\### Tick to Enable
+
+
+
+Tick a mod to add it to your game's mods folder.
+
+
+
+Untick it to remove it.
+
+
+
+The app only removes folders that \*\*it created itself\*\*, so your existing mods are never touched. If a folder name clashes with an existing mod, the app skips it instead of overwriting anything.
+
+
+
+\### Archive Support
+
+
+
+You can add `.zip`, `.7z`, and `.rar` archives.
+
+
+
+The app automatically extracts the archive and searches for the mod inside.
+
+
+
+If a mod doesn't contain a `mod.json`, the app will display a warning.
+
+
+
+\### Nexus Mods
+
+
+
+Search for People Playground mods or look them up by Nexus mod ID directly inside the app.
+
+
+
+\### Patreon — ALPHA
+
+
+
+Paste a Patreon post link and the app will attempt to download and install the mod.
+
+
+
+\*\*This feature is currently in ALPHA and is still being tested.\*\*
+
+
+
+\### Top Mods
+
+
+
+Browse \*\*top-mods.com\*\* directly from the app.
+
+
+
+Available categories include:
+
+
+
+\* Newest
+
+\* Most Downloaded
+
+\* Top Rated
+
+\* Most Commented
+
+
+
+\### Game Folder Picker
+
+
+
+Browse for your People Playground installation or use \*\*Auto-Detect\*\*.
+
+
+
+The Play button can launch the game directly or launch it through Steam.
+
+
+
+\### Automatically Delete Archives
+
+
+
+Optional setting that deletes an archive after a successful installation.
+
+
+
+This only applies to archives that were downloaded by the app itself.
+
+
+
+\### Assembly-CSharp.dll Fix
+
+
+
+A People Playground update shipped with a broken `Assembly-CSharp.dll` that prevented mods from loading.
+
+
+
+The Settings menu includes an option to install a fixed version.
+
+
+
+The original DLL is backed up before being replaced.
+
+
+
+You can use \*\*Revert to Original\*\* to restore the original file.
+
+
+
+\### Security Mode — ALPHA
+
+
+
+Security Mode blocks People Playground from accessing the internet using Windows Firewall.
+
+
+
+This is intended to help prevent another bad game update from being downloaded.
+
+
+
+\*\*ALPHA:\*\* This feature has not yet been tested on a large number of different systems.
+
+
+
+\### Clippy
+
+
+
+Clippy gives you tips and follows your mouse around.
+
+
+
+Right-click Clippy to hide him.
+
+
+
+You can bring him back from \*\*Settings\*\*.
+
+
+
+\## First-Time Setup
+
+
+
+1\. Open \*\*Settings\*\* and select your People Playground game folder.
+
+2\. You can use \*\*Auto-Detect\*\* if you aren't sure where the game is installed.
+
+3\. Make sure the Mods folder is set to the location your game actually uses.
+
+4\. If you want to use Nexus Mods, click \*\*Get API Key from Nexus\*\*, copy your API key, and paste it into the app.
+
+5\. If you want to use Patreon, open the \*\*Patreon\*\* tab and log in.
+
+
+
+\## Nexus Mods
+
+
+
+People Playground on Nexus Mods currently only provides \*\*Manual Download\*\*, so the download process works slightly differently.
+
+
+
+1\. Find a mod in the Nexus tab and click \*\*Get\*\*.
+
+2\. The Nexus page will open in your browser.
+
+3\. Click \*\*Manual Download\*\* on the Nexus page.
+
+4\. Save the downloaded file.
+
+5\. Clippy Mod Manager watches your Downloads folder and automatically detects the completed download.
+
+6\. The mod is then installed.
+
+
+
+Premium Nexus accounts will attempt a direct download first. If Nexus doesn't allow the direct download, the app falls back to the browser method above.
+
+
+
+You can also manually install an archive at any time using \*\*Add Archive\*\* on the Mods tab.
+
+
+
+\## Patreon — ALPHA
+
+
+
+The Patreon integration is currently \*\*ALPHA\*\*.
+
+
+
+Some Patreon posts may still fail to download, and this is currently the least-tested part of the application.
+
+
+
+\### Logging In
+
+
+
+Logging in opens a normal browser window using the official Patreon website.
+
+
+
+The app does \*\*not\*\* see or store your Patreon password. It only keeps the resulting login session.
+
+
+
+Currently:
+
+
+
+\* Email login — Supported
+
+\* Google login — Supported
+
+\* Apple login — Untested
+
+
+
+\### Downloading a Mod
+
+
+
+1\. Paste a Patreon post link into the Patreon tab.
+
+2\. Click \*\*Download and Install\*\*.
+
+3\. You must have a subscription that includes access to the post.
+
+4\. If Patreon blocks the direct download, the app will fall back to a browser window.
+
+5\. If Cloudflare displays a verification check, complete it once and the download should continue.
+
+
+
+If a download fails, check the log on the Patreon tab. \*\*The log is the most useful thing to send when reporting a Patreon problem.\*\*
+
+
+
+\## Top Mods
+
+
+
+\*\*top-mods.com is a fan-run website and is not affiliated with the People Playground developers or Nexus Mods.\*\*
+
+
+
+The app reads the site's listing pages to display its mod lists.
+
+
+
+If the website changes its layout, the lists may stop appearing until Clippy Mod Manager is updated.
+
+
+
+Files are \*\*not downloaded automatically\*\* from Top Mods.
+
+
+
+Clicking a mod opens its page in your browser. Download the file normally, and Clippy Mod Manager will detect it in your Downloads folder.
+
+
+
+\## Security Mode — ALPHA
+
+
+
+Security Mode blocks People Playground from accessing the internet using Windows Firewall rules that apply specifically to the game's executable.
+
+
+
+It also blocks the game from connecting to Steam, meaning Steam cannot automatically update the game while Security Mode is enabled.
+
+
+
+When Security Mode is enabled, use \*\*Direct Launch\*\* instead of \*\*Through Steam\*\*.
+
+
+
+Turning Security Mode on or off requires administrator permissions, so Windows will display a \*\*UAC prompt\*\* each time.
+
+
+
+If you cancel the UAC prompt, no changes will be made.
+
+
+
+> \*\*ALPHA:\*\* Security Mode has not yet been tested on a large variety of systems.
+
+
+
+\## Troubleshooting
+
+
+
+\### Patreon says there is nothing downloadable
+
+
+
+Check the log on the Patreon tab. It shows what Patreon returned.
+
+
+
+If you're reporting the issue, send the log with your report.
+
+
+
+\### Patreon says I'm logged in, but downloads fail
+
+
+
+Click \*\*Log In\*\* again to refresh your session.
+
+
+
+\### Top Mods is empty
+
+
+
+The Top Mods website may have changed its layout. Clippy may need to be updated to work with the new layout.
+
+
+
+\### Mods don't load after a game update
+
+
+
+Try the \*\*Assembly-CSharp.dll Fix\*\* in Settings.
+
+
+
+\### A mod shows a warning
+
+
+
+The mod probably doesn't contain a `mod.json`.
+
+
+
+People Playground may not be able to load the mod correctly without one.
+
+
+
+\## Still To Do
+
+
+
+\* More Patreon testing
+
+\* Update tracking and endorsements
+
+\* Improve handling of new files for existing Nexus mods
+
+\* Proper Clippy artwork
+
+
+
+Currently, if a new file is released for the same Nexus mod, it is installed as a separate entry.
+
+
+
+Clippy is also using a simple placeholder drawing for now.
+
+
+
+\## License
+
+
+
+\*\*GPL-3.0-or-later\*\*
+
+
+
