@@ -2,8 +2,6 @@ Clippy Mod Manager
 
 A mod manager for People Playground with a Clippy theme. It handles installing, enabling, and switching between mods, and can pull mods directly from Nexus Mods, Patreon, and top-mods.com.
 
-Loosely based on Mod Organizer 2.
-
 WORK IN PROGRESS
 
 Some features are marked ALPHA, so expect a few rough edges.
