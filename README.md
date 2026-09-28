@@ -1,3 +1,4 @@
+<img width="298" height="360" alt="Clippit" src="https://github.com/user-attachments/assets/a5c2d6b8-70e2-49ee-8b45-e2dda8629142" />
 Join My Server https://discord.gg/QtvavUDDjp
 Clippy Mod Manager
 
